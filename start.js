@@ -1,16 +1,9 @@
-/**
- * Ishlab chiqarish uchun ishga tushirish nuqtasi.
- * Serverni ko'taradi va demo simulyatorini yonida ishga tushiradi,
- * shunda dashboard tashrif buyuruvchi uchun bo'sh turmaydi.
- */
 const { spawn } = require("child_process");
-const path = require("path");
 
 const PORT = process.env.PORT || 3000;
-const kod = path.join(__dirname, "kod");
 
 const server = spawn(process.execPath, ["server.js"], {
-  cwd: kod,
+  cwd: __dirname,
   stdio: "inherit",
   env: { ...process.env, PORT },
 });
@@ -18,7 +11,7 @@ const server = spawn(process.execPath, ["server.js"], {
 let sim = null;
 setTimeout(() => {
   sim = spawn(process.execPath, ["simulate.js"], {
-    cwd: kod,
+    cwd: __dirname,
     stdio: "inherit",
     env: { ...process.env, SIM_TARGET: `http://127.0.0.1:${PORT}` },
   });
