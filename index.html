@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<title>AI Pilot — Signal Holati Monitoring</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; background: #F4F8FA; margin: 0; padding: 30px; }
+  h1 { color: #21295C; }
+  table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #E9F1F5; }
+  th { background: #065A82; color: white; }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+  .ONLAYN { background: #2FA65A; }
+  .KECHIKISH { background: #E0A82E; }
+  .OFFLAYN { background: #D64545; }
+  .status-cell { display: flex; align-items: center; font-weight: bold; }
+  .copilot { margin-top: 30px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 20px; border-radius: 6px; }
+  .copilot h2 { margin-top: 0; color: #21295C; font-size: 18px; }
+  #chatLog { height: 220px; overflow-y: auto; border: 1px solid #E9F1F5; border-radius: 6px; padding: 12px; margin-bottom: 10px; }
+  .msg { margin-bottom: 10px; max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
+  .msg.user { background: #E9F1F5; margin-left: auto; text-align: right; }
+  .msg.bot { background: #065A82; color: white; }
+  .chatInputRow { display: flex; gap: 8px; }
+  #chatInput { flex: 1; padding: 10px; border: 1px solid #E9F1F5; border-radius: 6px; font-size: 14px; }
+  #chatSend { padding: 10px 18px; background: #065A82; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  #chatSend:hover { background: #1C7293; }
+</style>
+</head>
+<body>
+  <h1>AI Pilot — Signal Holati Monitoring</h1>
+  <p style="margin:-8px 0 18px;padding:8px 12px;border-left:3px solid #F2A33C;background:rgba(242,163,60,.10);font-size:14px;line-height:1.5;">
+    <strong>Demo rejimi.</strong> Ko'rsatilayotgan qurilmalar simulyatsiya qilinmoqda —
+    TREKER-3 signalining uzilishi tizim reaksiyasini namoyish etish uchun ataylab yuzaga keltiriladi.
+    Backend, diagnostika va Copilot mantig'i haqiqiy kod bilan ishlaydi.
+  </p>
+  <p>Real-vaqtli qurilma holati (2 soniyada bir yangilanadi)</p>
+  <table>
+    <thead>
+      <tr><th>Qurilma</th><th>Holat</th><th>So'nggi signal</th><th>Uptime %</th><th>Jami signal</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <div class="copilot">
+    <h2>AI Copilot</h2>
+    <div id="chatLog"></div>
+    <div class="chatInputRow">
+      <input id="chatInput" type="text" placeholder='Masalan: "nechta qurilma offlayn?" yoki "TREKER-1 ni qayta ishga tushir"' />
+      <button id="chatSend">Yuborish</button>
+    </div>
+  </div>
+
+<script>
+async function refresh() {
+  const res = await fetch("/api/devices");
+  const data = await res.json();
+  const rows = document.getElementById("rows");
+  rows.innerHTML = "";
+  data.devices.forEach(d => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.deviceId}</td>
+      <td><span class="status-cell"><span class="dot ${d.status}"></span>${d.status}</span></td>
+      <td>${d.secondsSinceLastSeen != null ? d.secondsSinceLastSeen + " soniya oldin" : "—"}</td>
+      <td>${d.uptimePercent}%</td>
+      <td>${d.totalBeats}</td>
+    `;
+    rows.appendChild(tr);
+  });
+}
+setInterval(refresh, 2000);
+refresh();
+
+function addMsg(text, who) {
+  const log = document.getElementById("chatLog");
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function sendQuery() {
+  const input = document.getElementById("chatInput");
+  const query = input.value.trim();
+  if (!query) return;
+  addMsg(query, "user");
+  input.value = "";
+  try {
+    const res = await fetch("/api/copilot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    const data = await res.json();
+    addMsg(data.answer || data.error || "Xatolik yuz berdi", "bot");
+  } catch (e) {
+    addMsg("Server bilan bog'lanishda xatolik: " + e.message, "bot");
+  }
+}
+
+document.getElementById("chatSend").addEventListener("click", sendQuery);
+document.getElementById("chatInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendQuery();
+});
+addMsg("Salom! Menda quyidagicha so'rashingiz mumkin: qurilma holati, nechta offlayn, eng ishonchsiz qurilma, yoki \"TREKER-X ni qayta ishga tushir\".", "bot");
+</script>
+</body>
+</html>
