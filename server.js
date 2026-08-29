@@ -57,7 +57,7 @@ function sendJson(res, statusCode, obj) {
 
 function serveStatic(req, res) {
   let filePath = req.url === "/" ? "/index.html" : req.url;
-  filePath = path.join(__dirname, "public", filePath);
+  filePath = path.join(__dirname, filePath);
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404);
