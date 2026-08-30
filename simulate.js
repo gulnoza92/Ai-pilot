@@ -33,8 +33,8 @@ setInterval(() => {
   sendHeartbeat("TREKER-2", 40.1 + Math.random() * 0.001, 65.37 + Math.random() * 0.001);
 
   // TREKER-3: har 30 soniyalik davrning birinchi 10 soniyasida "aloqasi yo'q" (signal yubormaydi)
-  const phase = tick % 15; // ~30 soniyalik davr (2s interval * 15)
-  if (phase >= 5) {
+  const phase = tick % 20; // ~30 soniyalik davr (2s interval * 15)
+  if (phase >= 12) {
     sendHeartbeat("TREKER-3", 39.65 + Math.random() * 0.001, 66.96 + Math.random() * 0.001);
     console.log(`[${new Date().toLocaleTimeString()}] TREKER-3 signal yubordi`);
   } else {
