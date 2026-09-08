@@ -1,5 +1,5 @@
 # AI Pilot — GPS Trekerlar uchun Aqlli Monitoring Tizimi
-
+🇺🇿 O'zbekcha · 🇬🇧 [English](README.en.md)
 Ushbu papkada loyihaning barcha materiallari — biznes reja, texnik
 arxitektura, taqdimot va ishlaydigan kod prototipi (4 modul) — bitta joyda
 to'plangan.
