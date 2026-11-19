@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>AI Pilot</title>
+<meta name="description" content="AI Pilot on your phone: which GPS trackers are silent, since when, and what is being done about it.">
+<meta name="theme-color" content="#0B1A2A">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AI Pilot">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="app.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* Sofia Sans (SIL Open Font License, see font-license.txt): a wayfinding typeface with full Latin and Cyrillic. */
+@font-face{font-family:"Sofia Sans";font-style:normal;font-weight:100 900;font-display:swap;src:url(font-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Sofia Sans";font-style:normal;font-weight:100 900;font-display:swap;src:url(font-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+
+:root{
+  --font:"Sofia Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --navy:#0B1A2A; --teal:#2FB4C6;
+  --page:#E4EBF0; --paper:#FFFFFF; --mist:#F3F6F8; --ink:#0B1A2A; --slate:#55677A; --line:#D5DEE5;
+  --heard:#2FB4C6; --on-ink:#0B6F7E;
+  --wait:#C77700; --wait-ink:#8A5200; --wait-wash:#FFF3DD;
+  --lost:#D64545; --lost-ink:#B3261E; --lost-wash:#FDECEA;
+  --btn-bg:#0B1A2A; --btn-ink:#FFFFFF; --focus:#0B6F7E;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --page:#050D16; --paper:#0B1A2A; --mist:#12263A; --ink:#EAF2F6; --slate:#9DB0BF; --line:#223B52;
+    --on-ink:#5CCFDD;
+    --wait:#F2A33C; --wait-ink:#F6BD6E; --wait-wash:#33260F;
+    --lost:#FF6B63; --lost-ink:#FF9089; --lost-wash:#3B1B1F;
+    --btn-bg:#2FB4C6; --btn-ink:#04222A; --focus:#5CCFDD;
+  }
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;height:100%;background:var(--page);color:var(--ink);font:400 16px/1.45 var(--font);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3,p,ul,dl,dd{margin:0}
+ul{padding:0;list-style:none}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+#app{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:560px;margin:0 auto;background:var(--paper);overflow:hidden;overflow:clip}
+
+/* Top bar */
+.top{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 6px) 6px 6px 16px;background:var(--navy);color:#fff}
+.brand{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:700;letter-spacing:.03em}
+.brand svg{width:28px;height:28px;margin:0 -3px 0 -5px}
+.langs{display:flex}
+.langs button{min-width:46px;height:44px;padding:0 8px;background:none;border:0;border-radius:8px;color:#9DB0BF;font-size:14.5px;font-weight:600}
+.langs button span{display:inline-block;padding-bottom:3px;border-bottom:2px solid transparent}
+.langs button[aria-pressed="true"]{color:#fff}
+.langs button[aria-pressed="true"] span{border-bottom-color:var(--teal)}
+.top :focus-visible,.sheet-top :focus-visible{outline-color:#fff}
+
+/* Install hint */
+.install{flex:none;display:flex;align-items:center;gap:10px;padding:10px 6px 10px 16px;background:var(--mist);border-bottom:1px solid var(--line);font-size:14.5px;line-height:1.35}
+.install p{flex:1}
+.btn{height:42px;padding:0 16px;border:0;border-radius:10px;background:var(--btn-bg);color:var(--btn-ink);font-weight:700}
+.btn:disabled{opacity:.6}
+.icon-btn{flex:none;width:44px;height:44px;border:0;background:none;color:var(--slate);font-size:24px;line-height:1}
+
+/* Views */
+main{flex:1;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+
+/* The sentence at the top of a view states the situation in words */
+.hero{padding:22px 16px 18px}
+.hero h1{font-size:28px;line-height:1.14;font-weight:750;letter-spacing:-.005em;text-wrap:balance}
+.hero .names{margin-top:8px;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+.hero .meta{margin-top:10px;font-size:13.5px;line-height:1.4;color:var(--slate)}
+.hero.is-lost{background:var(--lost-wash)}
+.hero.is-lost h1,.hero.is-lost .names{color:var(--lost-ink)}
+.hero.is-wait{background:var(--wait-wash)}
+.hero.is-wait h1,.hero.is-wait .names{color:var(--wait-ink)}
+
+/* Rows: full-width, hairline-separated */
+.list{border-bottom:1px solid var(--line)}
+.list:empty{border-bottom:0}
+.row{display:block;width:100%;padding:14px 16px 13px;background:none;border:0;border-top:1px solid var(--line);text-align:left}
+button.row:active{background:var(--mist)}
+.row-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.row-id{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:17px;font-weight:750;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.row-foot{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:14.5px;color:var(--slate);font-variant-numeric:tabular-nums}
+.row-foot .doing{color:var(--ink);font-weight:600}
+.is-stale .list{opacity:.45}
+
+/* Status = colour + shape + word */
+.state{display:inline-flex;align-items:center;gap:7px;flex:none;font-size:14.5px;font-weight:650;white-space:nowrap}
+.state::before{content:"";flex:none;width:9px;height:9px;background:currentColor}
+.state.on{color:var(--on-ink)}
+.state.on::before{border-radius:50%}
+.state.wait{color:var(--wait-ink)}
+.state.wait::before{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.state.lost{color:var(--lost-ink)}
+.state.lost::before{border-radius:1px}
+.state.none{color:var(--slate)}
+.state.none::before{border-radius:50%;background:none;box-shadow:inset 0 0 0 2px currentColor}
+
+/* Signal strip: a bar where the tracker was heard, a thin line where it was silent */
+.strip{position:relative;display:block;height:12px;margin-top:10px;pointer-events:none}
+.strip i{position:absolute;display:block}
+.strip .heard{top:0;bottom:0;background:var(--heard);border-radius:2px}
+.strip .quiet,.strip .lost,.strip .none{top:50%;min-width:2px}
+.strip .quiet{height:2px;margin-top:-1px;background:var(--wait)}
+.strip .lost{height:3px;margin-top:-1.5px;background:var(--lost)}
+.strip .none{height:2px;margin-top:-1px;background:repeating-linear-gradient(90deg,var(--line) 0 4px,transparent 4px 8px)}
+.strip .live{right:-1px;top:50%;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;background:var(--lost)}
+.strip .tick{top:-5px;width:2px;height:8px;margin-left:-1px;background:var(--ink);border-radius:1px}
+.strip.big{height:24px;margin-top:0}
+@media (prefers-reduced-motion:no-preference){
+  .strip .live{animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(.55);opacity:.55}}
+}
+
+/* Bottom tabs */
+.tabs{flex:none;display:grid;grid-template-columns:repeat(3,1fr);background:var(--paper);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px;padding:8px 4px 7px;background:none;border:0;color:var(--slate);font-size:13px;font-weight:600}
+.tabs button[aria-current="page"]{color:var(--ink)}
+.tabs button[aria-current="page"]::before{content:"";position:absolute;top:-1px;left:24%;right:24%;height:3px;background:var(--teal);border-radius:0 0 3px 3px}
+.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs .badge{position:absolute;top:5px;left:calc(50% + 7px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--lost);color:#fff;font-size:12px;line-height:18px;font-weight:700;font-style:normal}
+
+/* Tracker sheet */
+.sheet{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;background:var(--paper);transform:translateY(100%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s}
+.sheet.open{transform:none;visibility:visible;transition:transform .22s ease}
+@media (prefers-reduced-motion:reduce){.sheet,.sheet.open{transition:none}}
+.sheet-top{flex:none;padding:calc(env(safe-area-inset-top,0px) + 6px) 8px 6px 4px;background:var(--navy);color:#fff}
+.back{display:inline-flex;align-items:center;gap:2px;height:44px;padding:0 12px 0 6px;background:none;border:0;border-radius:8px;color:#fff;font-size:16px;font-weight:600}
+.back svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sheet-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 28px)}
+.d-head{padding:20px 16px 0}
+.d-head h2{font-size:26px;line-height:1.15;font-weight:750;overflow-wrap:anywhere}
+.d-now{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-top:8px;font-size:15px;color:var(--slate);font-variant-numeric:tabular-nums}
+.d-strip{padding:22px 16px 0}
+.axis{display:flex;justify-content:space-between;margin-top:7px;font-size:13.5px;color:var(--slate)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;font-size:13.5px;color:var(--slate)}
+.legend li{display:flex;align-items:center;gap:7px}
+.legend i{display:block;flex:none}
+.legend .k-heard{width:14px;height:10px;background:var(--heard);border-radius:2px}
+.legend .k-quiet{width:14px;height:2px;background:var(--wait)}
+.legend .k-lost{width:14px;height:3px;background:var(--lost)}
+.legend .k-tick{width:2px;height:10px;margin:0 6px;background:var(--ink);border-radius:1px}
+.act{padding:20px 16px 0}
+.act .btn{width:100%;height:50px;font-size:16.5px}
+.act p{margin-top:10px;font-size:15px;line-height:1.4}
+.facts{margin-top:22px;border-top:1px solid var(--line)}
+.facts div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.facts dt{color:var(--slate)}
+.facts dd{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.facts a{display:inline-block;margin-top:2px;color:var(--on-ink);font-weight:650;text-underline-offset:3px}
+.sub{padding:24px 16px 10px;font-size:16px;font-weight:750}
+.empty{padding:0 16px 8px;color:var(--slate);font-size:15px}
+
+/* Copilot */
+.view.chat-view{display:flex;flex-direction:column;overflow:hidden}
+.note{flex:none;padding:10px 16px;background:var(--mist);border-bottom:1px solid var(--line);font-size:14px;line-height:1.35;color:var(--slate)}
+.log{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:10px;padding:16px}
+.msg{max-width:86%;padding:10px 13px;border-radius:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--btn-bg);color:var(--btn-ink);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--mist);border-bottom-left-radius:4px}
+.asks{flex:none;display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;scrollbar-width:none}
+.asks::-webkit-scrollbar{display:none}
+.asks button{flex:none;height:40px;padding:0 14px;border:1px solid var(--line);border-radius:20px;background:var(--paper);font-size:14.5px;font-weight:600;white-space:nowrap}
+.asks button:active{background:var(--mist)}
+.composer{flex:none;display:flex;gap:8px;padding:8px 12px 10px 16px;border-top:1px solid var(--line)}
+.composer input{flex:1;min-width:0;height:46px;padding:0 16px;border:1px solid var(--line);border-radius:23px;background:var(--paper);font-size:16px}
+.composer input::placeholder{color:var(--slate);opacity:1}
+.composer button{flex:none;width:46px;height:46px;border:0;border-radius:50%;background:var(--btn-bg);color:var(--btn-ink)}
+.composer button:disabled{opacity:.5}
+.composer svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+
+/* Alert while the app is open */
+.toast{position:absolute;z-index:9;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 64px);padding:13px 16px;border:1px solid transparent;border-radius:12px;background:var(--lost-ink);color:#fff;font-size:15.5px;font-weight:650;text-align:left;box-shadow:0 8px 22px rgba(4,12,20,.3)}
+@media (prefers-color-scheme:dark){.toast{background:#7A1F1F;border-color:#A63A3A}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top" id="top">
+    <div class="brand">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M300 780 524 240l224 540-224-134z" fill="none" stroke="#2FB4C6" stroke-width="78" stroke-linejoin="round"/><circle cx="668" cy="588" r="62" fill="#F2A33C"/></svg>
+      <span>AI Pilot</span>
+    </div>
+    <div class="langs" role="group" id="langs">
+      <button type="button" data-lang="uz" lang="uz"><span>Oʻz</span></button>
+      <button type="button" data-lang="ru" lang="ru"><span>Рус</span></button>
+      <button type="button" data-lang="en" lang="en"><span>Eng</span></button>
+    </div>
+  </header>
+
+  <div class="install" id="install" hidden>
+    <p id="installText"></p>
+    <button class="btn" id="installGo" type="button" hidden></button>
+    <button class="icon-btn" id="installNo" type="button">×</button>
+  </div>
+
+  <main id="main">
+    <section class="view" id="view-trackers" aria-labelledby="heroTitle">
+      <div class="hero" id="hero">
+        <h1 id="heroTitle" aria-live="polite"></h1>
+        <p class="names" id="heroNames" hidden></p>
+        <p class="meta" id="heroMeta"></p>
+      </div>
+      <ul class="list" id="rows"></ul>
+    </section>
+
+    <section class="view" id="view-incidents" aria-labelledby="incTitle" hidden>
+      <div class="hero"><h1 id="incTitle"></h1></div>
+      <ul class="list" id="incRows"></ul>
+    </section>
+
+    <section class="view chat-view" id="view-copilot" hidden>
+      <p class="note" id="chatNote" hidden></p>
+      <div class="log" id="chatLog" aria-live="polite"></div>
+      <div class="asks" id="asks"></div>
+      <form class="composer" id="composer">
+        <input id="chatInput" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="send" maxlength="300">
+        <button type="submit" id="chatSend"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+      </form>
+    </section>
+  </main>
+
+  <nav class="tabs" id="tabs">
+    <button type="button" data-tab="trackers" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>
+      <span></span><b class="badge" id="badge" hidden></b>
+    </button>
+    <button type="button" data-tab="incidents">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+      <span></span>
+    </button>
+    <button type="button" data-tab="copilot">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5h13A2.5 2.5 0 0 1 21 7.5v7a2.5 2.5 0 0 1-2.5 2.5H12l-4.5 3.5V17h-2A2.5 2.5 0 0 1 3 14.5v-7A2.5 2.5 0 0 1 5.5 5z"/></svg>
+      <span></span>
+    </button>
+  </nav>
+
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <div class="sheet-top">
+      <button class="back" id="back" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span id="backText"></span></button>
+    </div>
+    <div class="sheet-body" id="sheetBody">
+      <div class="d-head">
+        <h2 id="dTitle"></h2>
+        <p class="d-now"><span class="state" id="dState"></span><span id="dSince"></span></p>
+      </div>
+      <div class="d-strip">
+        <span class="strip big" id="dStrip"></span>
+        <div class="axis"><span id="axisFrom"></span><span id="axisNow"></span></div>
+        <ul class="legend" id="legend"></ul>
+      </div>
+      <div class="act">
+        <button class="btn" id="checkBtn" type="button"></button>
+        <p id="checkMsg" role="status" hidden></p>
+      </div>
+      <dl class="facts">
+        <div><dt id="fUptimeK"></dt><dd id="fUptime"></dd></div>
+        <div><dt id="fScoreK"></dt><dd id="fScore"></dd></div>
+        <div><dt id="fTotalK"></dt><dd id="fTotal"></dd></div>
+        <div><dt id="fBeatsK"></dt><dd id="fBeats"></dd></div>
+        <div id="fPosRow"><dt id="fPosK"></dt><dd><span id="fPos"></span><br><a id="fMap" target="_blank" rel="noopener"></a></dd></div>
+      </dl>
+      <h3 class="sub" id="recentTitle"></h3>
+      <ul class="list" id="dInc"></ul>
+      <p class="empty" id="dNoInc" hidden></p>
+    </div>
+  </section>
+
+  <button class="toast" id="toast" type="button" hidden></button>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ * Words. Three languages; the server's own status codes stay as keys. *
+ * ------------------------------------------------------------------ */
+const ruN = (n, one, few, many) => {
+  const a = n % 10, b = n % 100;
+  return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many;
+};
+
+const STR = {
+  uz: {
+    decimal: ",", group: "\u00A0", dateSep: ".",
+    langGroup: "Til",
+    tabs: { trackers: "Trekerlar", incidents: "Uzilishlar", copilot: "Copilot" },
+    state: { on: "Onlayn", wait: "Kechikish", lost: "Offlayn", none: "Signal kutilmoqda" },
+    unit: { s: "s", m: "daq", h: "soat", d: "kun" },
+    allOn: (n) => (n === 1 ? "Treker aloqada" : `Barcha ${n} ta treker aloqada`),
+    someLost: (k, n) => (n === 1 ? "Treker aloqada emas" : `${n} ta trekerdan ${k} tasi aloqada emas`),
+    someWait: (k, n) => (n === 1 ? "Treker kechikmoqda" : `${n} ta trekerdan ${k} tasi kechikmoqda`),
+    lostNames: "Aloqa yoʻq:", waitNames: "Kechikmoqda:", more: (m) => `va yana ${m} ta`,
+    none: "Hozircha treker yoʻq", noneSub: "Server hali birorta signal olmadi.",
+    connecting: "Serverga ulanmoqda…", waking: "Server uygʻonayotgan boʻlishi mumkin. Bu bir daqiqagacha choʻziladi.",
+    noServer: "Server bilan aloqa yoʻq", staleSub: (t) => `Maʼlumot ${t} holatiga koʻra. Qayta urinilmoqda.`,
+    auth: "Server kirish kalitini soʻramoqda. Ilovaning bu versiyasi kalitni qoʻllab-quvvatlamaydi.",
+    live: (s) => `Har ${s} soniyada yangilanadi.`, demo: "Demo: trekerlar simulyatsiya qilinmoqda.",
+    justNow: "signal hozirgina keldi", signalAgo: (d) => `signal ${d} oldin`, silent: (d) => `signal yoʻq: ${d}`,
+    never: "hali signal kelmagan", uptime: (p) => `uptime ${p}`,
+    attempt: (a, m) => `urinish ${a}/${m}`, starting: "tiklash boshlanmoqda", handed: "insonga topshirildi",
+    winMin: (m) => `${m} daqiqa`, winHour: (h) => `${h} soat`,
+    incHero: (n, w) => (n ? `Soʻnggi ${w} ichida ${n} ta uzilish` : `Soʻnggi ${w} ichida uzilish boʻlmadi`),
+    at: (t, d) => `${t} da, ${d} davom etdi`, since: (t, d) => `${t} dan beri, ${d}`,
+    tries: (a) => `urinishlar: ${a}`,
+    out: { open: "Tiklanmoqda", need: "Inson kerak", done: "Aloqa tiklandi" },
+    back: "Trekerlar",
+    facts: { uptime: "Uptime", score: "Ishonchlilik", total: "Jami uzilishlar", beats: "Qabul qilingan signallar", pos: "Soʻnggi joylashuv", map: "Xaritada ochish" },
+    scoreVal: (s, r) => `100 dan ${s}, ${r}`,
+    risk: { BARQAROR: "barqaror", "KUZATISH KERAK": "kuzatish kerak", XAVFLI: "xavfli" },
+    axisFrom: (w) => `${w} oldin`, now: "hozir",
+    legend: { heard: "signal bor", quiet: "signal kutilmoqda", lost: "aloqa yoʻq", tick: "qayta ishga tushirish urinishi" },
+    checkLost: "Hozir qayta ishga tushirish", check: "Hozir tekshirish", checking: "Tekshirilmoqda…",
+    res: {
+      restart: (a) => `Qayta ishga tushirish buyrugʻi yuborildi (${a}-urinish).`,
+      fine: "Treker aloqada, qayta ishga tushirish shart emas.",
+      wait: (d) => `Yaqinda urinish qilingan. Keyingi urinishgacha ${d}.`,
+      need: "Avtomatik tiklash yordam bermadi. Treker inson eʼtiboriga topshirilgan.",
+      missing: "Treker topilmadi.", fail: "Server javob bermadi. Qayta urinib koʻring.",
+      demo: "Demoda buyruq faqat jurnalga yoziladi.",
+    },
+    recent: "Soʻnggi uzilishlar", noInc: "Bu oraliqda uzilish boʻlmagan.",
+    chat: {
+      legacyNote: "",
+      hello: "Salom! Quyidagi savollardan birini tanlang yoki oʻzingiz yozing. Masalan: «TREKER-3 ni qayta ishga tushir».",
+      placeholder: "Savol yozing…", send: "Yuborish", fail: "Server javob bermadi. Qayta urinib koʻring.",
+      asks: ["Nechta qurilma offlayn?", "Eng ishonchsiz qurilma", "Qaysi qurilmalar xavfli?", "Oʻrtacha uptime"],
+    },
+    install: { text: "AI Pilotʼni bosh ekranga oʻrnating.", go: "Oʻrnatish", ios: "Oʻrnatish uchun: Safariʼda «Ulashish» tugmasini bosing, soʻng «Bosh ekranga qoʻshish»ni tanlang.", close: "Yopish" },
+    toast: { lost: (id) => `${id}: aloqa yoʻq`, need: (id) => `${id}: avtomatik tiklash yordam bermadi, inson kerak` },
+  },
+
+  ru: {
+    decimal: ",", group: "\u00A0", dateSep: ".",
+    langGroup: "Язык",
+    tabs: { trackers: "Трекеры", incidents: "Обрывы", copilot: "Copilot" },
+    state: { on: "На связи", wait: "Задержка", lost: "Нет связи", none: "Ждём сигнал" },
+    unit: { s: "с", m: "мин", h: "ч", d: "дн" },
+    allOn: (n) => (n === 1 ? "Трекер на связи" : `Все ${n} ${ruN(n, "трекер", "трекера", "трекеров")} на связи`),
+    someLost: (k, n) => (n === 1 ? "Трекер не на связи" : `${k} из ${n} не на связи`),
+    someWait: (k, n) => (n === 1 ? "Трекер отвечает с задержкой" : `${k} из ${n} ${k % 10 === 1 && k % 100 !== 11 ? "отвечает" : "отвечают"} с задержкой`),
+    lostNames: "Нет связи:", waitNames: "С задержкой:", more: (m) => `и ещё ${m}`,
+    none: "Трекеров пока нет", noneSub: "Сервер ещё не получил ни одного сигнала.",
+    connecting: "Подключаюсь к серверу…", waking: "Возможно, сервер просыпается. Это занимает до минуты.",
+    noServer: "Нет связи с сервером", staleSub: (t) => `Данные на ${t}. Повторяю попытку.`,
+    auth: "Сервер просит ключ доступа. Эта версия приложения ключ не поддерживает.",
+    live: (s) => `Обновляется каждые ${s} с.`, demo: "Демо: трекеры симулируются.",
+    justNow: "сигнал только что", signalAgo: (d) => `сигнал ${d} назад`, silent: (d) => `молчит ${d}`,
+    never: "сигнала ещё не было", uptime: (p) => `uptime ${p}`,
+    attempt: (a, m) => `попытка ${a} из ${m}`, starting: "начинаю восстановление", handed: "передано человеку",
+    winMin: (m) => `${m} ${ruN(m, "минуту", "минуты", "минут")}`, winHour: (h) => `${h} ${ruN(h, "час", "часа", "часов")}`,
+    incHero: (n, w) => (n ? `За последние ${w}: ${n} ${ruN(n, "обрыв", "обрыва", "обрывов")} связи` : `За последние ${w} обрывов не было`),
+    at: (t, d) => `в ${t}, длился ${d}`, since: (t, d) => `с ${t}, уже ${d}`,
+    tries: (a) => `перезагрузок: ${a}`,
+    out: { open: "Восстанавливаю", need: "Нужен человек", done: "Связь вернулась" },
+    back: "Трекеры",
+    facts: { uptime: "Uptime", score: "Надёжность", total: "Обрывов всего", beats: "Получено сигналов", pos: "Последняя точка", map: "Открыть на карте" },
+    scoreVal: (s, r) => `${s} из 100, ${r}`,
+    risk: { BARQAROR: "стабильный", "KUZATISH KERAK": "нужно наблюдать", XAVFLI: "ненадёжный" },
+    axisFrom: (w) => `${w} назад`, now: "сейчас",
+    legend: { heard: "сигнал есть", quiet: "ждём сигнал", lost: "нет связи", tick: "попытка перезагрузки" },
+    checkLost: "Перезагрузить сейчас", check: "Проверить сейчас", checking: "Проверяю…",
+    res: {
+      restart: (a) => `Команда перезагрузки отправлена (попытка ${a}).`,
+      fine: "Трекер на связи, перезагрузка не нужна.",
+      wait: (d) => `Недавно уже была попытка. Следующая через ${d}.`,
+      need: "Автоматика не помогла. Трекер передан человеку.",
+      missing: "Трекер не найден.", fail: "Сервер не ответил. Попробуйте ещё раз.",
+      demo: "В демо команда только записывается в журнал.",
+    },
+    recent: "Последние обрывы", noInc: "За это время обрывов не было.",
+    chat: {
+      legacyNote: "Сервер старой версии: Copilot понимает и отвечает только на узбекском.",
+      hello: "Нажмите на вопрос ниже или напишите свой. Например: «Перезагрузи TREKER-3».",
+      placeholder: "Напишите вопрос…", send: "Отправить", fail: "Сервер не ответил. Попробуйте ещё раз.",
+      asks: ["Сколько не на связи?", "Самый ненадёжный", "Какие требуют внимания?", "Средний uptime"],
+    },
+    install: { text: "Поставьте AI Pilot на главный экран.", go: "Установить", ios: "Чтобы установить: в Safari нажмите «Поделиться», затем «На экран „Домой“».", close: "Закрыть" },
+    toast: { lost: (id) => `${id}: нет связи`, need: (id) => `${id}: автоматика не помогла, нужен человек` },
+  },
+
+  en: {
+    decimal: ".", group: ",", dateSep: "/",
+    langGroup: "Language",
+    tabs: { trackers: "Trackers", incidents: "Outages", copilot: "Copilot" },
+    state: { on: "Online", wait: "Delayed", lost: "Offline", none: "Waiting for signal" },
+    unit: { s: "s", m: "min", h: "h", d: "d" },
+    allOn: (n) => (n === 1 ? "The tracker is online" : `All ${n} trackers are online`),
+    someLost: (k, n) => (n === 1 ? "The tracker is offline" : `${k} of ${n} trackers ${k === 1 ? "is" : "are"} offline`),
+    someWait: (k, n) => (n === 1 ? "The tracker is delayed" : `${k} of ${n} trackers ${k === 1 ? "is" : "are"} delayed`),
+    lostNames: "Offline:", waitNames: "Delayed:", more: (m) => `and ${m} more`,
+    none: "No trackers yet", noneSub: "The server has not received a signal yet.",
+    connecting: "Connecting to the server…", waking: "The server may be waking up. This can take up to a minute.",
+    noServer: "No connection to the server", staleSub: (t) => `Data as of ${t}. Retrying.`,
+    auth: "The server asks for an access key. This version of the app does not support keys.",
+    live: (s) => `Updates every ${s} s.`, demo: "Demo: the trackers are simulated.",
+    justNow: "signal just now", signalAgo: (d) => `signal ${d} ago`, silent: (d) => `silent for ${d}`,
+    never: "no signal yet", uptime: (p) => `uptime ${p}`,
+    attempt: (a, m) => `attempt ${a} of ${m}`, starting: "starting recovery", handed: "handed to a person",
+    winMin: (m) => `${m} ${m === 1 ? "minute" : "minutes"}`, winHour: (h) => `${h} ${h === 1 ? "hour" : "hours"}`,
+    incHero: (n, w) => (n ? `${n} ${n === 1 ? "outage" : "outages"} in the last ${w}` : `No outages in the last ${w}`),
+    at: (t, d) => `at ${t}, lasted ${d}`, since: (t, d) => `since ${t}, ${d} so far`,
+    tries: (a) => `restarts: ${a}`,
+    out: { open: "Recovering", need: "Needs a person", done: "Back online" },
+    back: "Trackers",
+    facts: { uptime: "Uptime", score: "Reliability", total: "Outages in total", beats: "Signals received", pos: "Last position", map: "Open in maps" },
+    scoreVal: (s, r) => `${s} of 100, ${r}`,
+    risk: { BARQAROR: "stable", "KUZATISH KERAK": "watch", XAVFLI: "unreliable" },
+    axisFrom: (w) => `${w} ago`, now: "now",
+    legend: { heard: "signal", quiet: "waiting for signal", lost: "offline", tick: "restart attempt" },
+    checkLost: "Restart now", check: "Check now", checking: "Checking…",
+    res: {
+      restart: (a) => `Restart command sent (attempt ${a}).`,
+      fine: "The tracker is online. No restart needed.",
+      wait: (d) => `An attempt was made recently. Next one in ${d}.`,
+      need: "Automatic recovery did not help. The tracker was handed to a person.",
+      missing: "Tracker not found.", fail: "The server did not answer. Try again.",
+      demo: "In the demo the command is only written to the log.",
+    },
+    recent: "Recent outages", noInc: "No outages in this period.",
+    chat: {
+      legacyNote: "Older server version: Copilot understands and answers in Uzbek only.",
+      hello: "Tap a question below or type your own. For example: “Restart TREKER-3”.",
+      placeholder: "Type a question…", send: "Send", fail: "The server did not answer. Try again.",
+      asks: ["How many are offline?", "Least reliable tracker", "Which need attention?", "Average uptime"],
+    },
+    install: { text: "Put AI Pilot on your home screen.", go: "Install", ios: "To install: in Safari tap Share, then Add to Home Screen.", close: "Close" },
+    toast: { lost: (id) => `${id} is offline`, need: (id) => `${id}: automatic recovery did not help, it needs a person` },
+  },
+};
+
+// Copilot understands all three languages, so a suggested question is sent as it is written.
+// Only an older server (see "legacy" below) knows Uzbek alone; it gets these instead.
+const ASK_QUERIES = ["nechta qurilma offlayn?", "eng ishonchsiz qurilma qaysi?", "qaysi qurilmalar xavfli?", "o'rtacha uptime qancha?"];
+
+/* ------------------------------------------------------------------ *
+ * State and small helpers                                             *
+ * ------------------------------------------------------------------ */
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text != null) node.textContent = text;
+  return node;
+};
+const setText = (node, text) => { if (node.textContent !== text) node.textContent = text; };
+const setClass = (node, cls) => { if (node.className !== cls) node.className = cls; };
+const store = {
+  get(key) { try { return localStorage.getItem(key); } catch { return null; } },
+  set(key, value) { try { localStorage.setItem(key, value); } catch { /* private mode: keep going */ } },
+};
+
+function pickLang() {
+  const asked = new URLSearchParams(location.search).get("lang");
+  if (STR[asked]) return asked;
+  const saved = store.get("aipilot.lang");
+  if (STR[saved]) return saved;
+  for (const tag of navigator.languages || [navigator.language || ""]) {
+    const code = String(tag).slice(0, 2).toLowerCase();
+    if (STR[code]) return code;
+  }
+  return "en";
+}
+
+const state = {
+  lang: pickLang(),
+  tab: "trackers",
+  data: null,          // last good answer from the server
+  offset: 0,           // server clock minus phone clock
+  okAt: 0,             // when the last good answer arrived (phone clock)
+  startedAt: Date.now(),
+  failing: false,
+  legacy: false,       // server without /api/app/overview: fall back to the older endpoints
+  authBlocked: false,
+  openId: null,        // tracker shown in the sheet
+  result: null,        // text under the check button
+  busy: false,
+  asking: false,
+  chat: [],            // {who: "me" | "bot", text}
+  installEvent: null,
+};
+let L = STR[state.lang];
+const now = () => Date.now() + state.offset;
+
+const KIND = { ONLAYN: "on", KECHIKISH: "wait", OFFLAYN: "lost" };
+const kindOf = (d) => KIND[d.status] || "none";
+const openIncident = (d) => { const last = d.incidents[d.incidents.length - 1]; return last && last.end == null ? last : null; };
+const needsPerson = (d) => { const inc = openIncident(d); return !!(inc && inc.escalated); };
+
+function dur(ms) {
+  const u = L.unit;
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s} ${u.s}`;
+  const m = Math.floor(s / 60);
+  if (s < 300) return `${m} ${u.m} ${String(s % 60).padStart(2, "0")} ${u.s}`;
+  if (s < 3600) return `${m} ${u.m}`;
+  const h = Math.floor(s / 3600);
+  const restMin = Math.floor((s % 3600) / 60);
+  if (s < 86400) return restMin ? `${h} ${u.h} ${restMin} ${u.m}` : `${h} ${u.h}`;
+  const restHours = Math.floor((s % 86400) / 3600);
+  return restHours ? `${Math.floor(s / 86400)} ${u.d} ${restHours} ${u.h}` : `${Math.floor(s / 86400)} ${u.d}`;
+}
+// Numbers and times are formatted by hand: the phone's built-in locale data differs
+// from device to device (Uzbek is often missing), and the app should read the same everywhere.
+const two = (n) => String(n).padStart(2, "0");
+function pct(p) {
+  const rounded = Math.round(Number(p) * 10) / 10;
+  return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace(".", L.decimal)) + "%";
+}
+const num = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, L.group);
+function clock(ts, withSeconds) {
+  const date = new Date(ts);
+  let text = `${two(date.getHours())}:${two(date.getMinutes())}` + (withSeconds ? `:${two(date.getSeconds())}` : "");
+  if (new Date(now()).toDateString() !== date.toDateString()) text = `${two(date.getDate())}${L.dateSep}${two(date.getMonth() + 1)} ${text}`;
+  return text;
+}
+const windowWords = (ms) => (ms < 3600000 ? L.winMin(Math.round(ms / 60000)) : L.winHour(Math.round(ms / 3600000)));
+const shortWindow = () => state.data.windowMs <= 3600000;
+
+/* ------------------------------------------------------------------ *
+ * Talking to the server                                               *
+ * ------------------------------------------------------------------ */
+async function getJson(url, ms = 12000) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" }, signal: ctl.signal });
+    if (res.status === 401 || res.status === 403) throw Object.assign(new Error("auth"), { auth: true });
+    if (res.status === 404) throw Object.assign(new Error("missing"), { missing: true });
+    // A hosting "service is starting" page is HTML with status 200: treat it as "not ready yet".
+    if (!res.ok || !(res.headers.get("content-type") || "").includes("json")) throw new Error("not ready");
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Older server versions have no /api/app/overview. Build the same shape from what they do have.
+async function legacyOverview() {
+  const [dev, risk] = await Promise.all([
+    getJson("api/devices"),
+    getJson("api/diagnostics/risk").catch(() => ({ report: [] })),
+  ]);
+  const riskById = new Map((risk.report || []).map((r) => [r.deviceId, r]));
+  const generatedAt = dev.generatedAt || Date.now();
+  const windowMs = 600000;
+  return {
+    generatedAt,
+    demo: null,
+    thresholds: { delayMs: 5000, offlineMs: 15000, retryIntervalMs: 20000, maxAttempts: 3 },
+    windowMs,
+    devices: (dev.devices || []).map((d) => {
+      const r = riskById.get(d.deviceId) || {};
+      const periods = Array.isArray(d.downPeriods) ? d.downPeriods : [];
+      return {
+        deviceId: String(d.deviceId),
+        status: d.status,
+        lastSeen: d.lastSeen ?? null,
+        firstSeen: null,
+        uptimePercent: Number(d.uptimePercent) || 0,
+        totalBeats: Number(d.totalBeats) || 0,
+        reliabilityScore: r.reliabilityScore ?? null,
+        risk: r.risk ?? null,
+        incidentCount: periods.length,
+        lastLocation: null,
+        incidents: periods
+          .filter((p) => p.end == null || p.end >= generatedAt - windowMs)
+          .slice(-120)
+          .map((p) => ({ start: p.start, end: p.end ?? null, escalated: !!p.escalated, attempts: Array.isArray(p.remediationAttempts) ? p.remediationAttempts : [] })),
+      };
+    }),
+  };
+}
+
+async function loadOverview() {
+  if (!state.legacy) {
+    try {
+      return await getJson("api/app/overview");
+    } catch (err) {
+      if (!err.missing) throw err;
+      state.legacy = true;
+    }
+  }
+  return legacyOverview();
+}
+
+let polling = false;
+let pollTimer = null;
+
+function pollEvery() {
+  const th = state.data && state.data.thresholds;
+  const base = th ? Math.min(30000, Math.max(3000, Math.round(th.delayMs / 2))) : 3000;
+  return state.failing ? Math.min(15000, base * 2) : base;
+}
+
+async function poll() {
+  if (polling) return;
+  polling = true;
+  try {
+    const data = await loadOverview();
+    state.offset = data.generatedAt - Date.now();
+    announceChanges(state.data, data);
+    state.data = data;
+    state.okAt = Date.now();
+    state.failing = false;
+    state.authBlocked = false;
+  } catch (err) {
+    state.failing = true;
+    state.authBlocked = !!err.auth;
+  } finally {
+    polling = false;
+  }
+  render();
+}
+
+async function cycle() {
+  clearTimeout(pollTimer);
+  await poll();
+  if (!document.hidden) pollTimer = setTimeout(cycle, pollEvery());
+}
+
+/* ------------------------------------------------------------------ *
+ * Alerts while the app is open                                        *
+ * ------------------------------------------------------------------ */
+let toastTimer = null;
+function showToast(text, id) {
+  if (!document.hidden && navigator.vibrate) { try { navigator.vibrate(180); } catch { /* not allowed: fine */ } }
+  // On the tracker list the headline and the first row already say it; a banner would only cover them.
+  if (state.tab === "trackers" && !state.openId) return;
+  const toast = $("toast");
+  toast.textContent = text;
+  toast.dataset.id = id;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 5000);
+}
+
+function announceChanges(before, after) {
+  if (!before) return;
+  const old = new Map(before.devices.map((d) => [d.deviceId, d]));
+  for (const d of after.devices) {
+    const was = old.get(d.deviceId);
+    if (!was || d.deviceId === state.openId) continue;
+    if (needsPerson(d) && !needsPerson(was)) showToast(L.toast.need(d.deviceId), d.deviceId);
+    else if (d.status === "OFFLAYN" && was.status !== "OFFLAYN") showToast(L.toast.lost(d.deviceId), d.deviceId);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Signal strip                                                        *
+ * ------------------------------------------------------------------ */
+// Splits the time window into: heard (bar), quiet (silent, not yet declared offline), lost (offline).
+function stripSpans(d, at, windowMs, th) {
+  const t0 = at - windowMs;
+  const out = { none: null, heard: [], quiet: [], lost: [], ticks: [], live: false };
+  if (!d.lastSeen) { out.none = [t0, at]; return out; }
+
+  const from = Math.max(t0, d.firstSeen ?? t0);
+  if (from > t0) out.none = [t0, from];
+
+  const silent = [];
+  const addSilence = (quietFrom, lostFrom, until) => {
+    const qa = Math.max(from, quietFrom);
+    const qb = Math.max(qa, Math.min(lostFrom, at));
+    const lb = Math.max(qb, Math.min(until, at));
+    if (qb > qa) out.quiet.push([qa, qb]);
+    if (lb > qb) out.lost.push([qb, lb]);
+    if (lb > qa) silent.push([qa, lb]);
+  };
+
+  for (const inc of d.incidents) {
+    const until = inc.end ?? at;
+    if (until <= from) continue;
+    addSilence(inc.start - th.offlineMs, inc.start, until);
+    for (const a of inc.attempts) if (a >= t0 && a <= at) out.ticks.push(a);
+    if (inc.end == null) out.live = true;
+  }
+  if (!openIncident(d)) {
+    if (d.status === "KECHIKISH") addSilence(d.lastSeen, at, at);
+    if (d.status === "OFFLAYN") { addSilence(d.lastSeen, d.lastSeen + th.offlineMs, at); out.live = true; }
+  }
+
+  silent.sort((a, b) => a[0] - b[0]);
+  let cursor = from;
+  for (const [a, b] of silent) {
+    if (a > cursor) out.heard.push([cursor, a]);
+    cursor = Math.max(cursor, b);
+  }
+  if (at > cursor) out.heard.push([cursor, at]);
+  return out;
+}
+
+function drawStrip(node, d, big) {
+  const at = now();
+  const W = state.data.windowMs;
+  const t0 = at - W;
+  const spans = stripSpans(d, at, W, state.data.thresholds);
+  const pos = (t) => Math.min(100, Math.max(0, ((t - t0) / W) * 100));
+  const frag = document.createDocumentFragment();
+  const bar = (cls, a, b) => {
+    const i = document.createElement("i");
+    i.className = cls;
+    i.style.left = pos(a).toFixed(3) + "%";
+    i.style.width = (pos(b) - pos(a)).toFixed(3) + "%";
+    frag.append(i);
+  };
+  if (spans.none) bar("none", spans.none[0], spans.none[1]);
+  for (const [a, b] of spans.heard) bar("heard", a, b);
+  for (const [a, b] of spans.quiet) bar("quiet", a, b);
+  for (const [a, b] of spans.lost) bar("lost", a, b);
+  if (big) {
+    for (const t of spans.ticks) {
+      const i = document.createElement("i");
+      i.className = "tick";
+      i.style.left = pos(t).toFixed(3) + "%";
+      frag.append(i);
+    }
+  }
+  if (spans.live) frag.append(el("i", "live"));
+  node.replaceChildren(frag);
+}
+
+/* ------------------------------------------------------------------ *
+ * Lists that keep their rows (a tap never lands on a replaced node)   *
+ * ------------------------------------------------------------------ */
+function syncList(ul, rows, items, keyOf, make, fill) {
+  const seen = new Set();
+  let previous = null;
+  for (const item of items) {
+    const key = keyOf(item);
+    seen.add(key);
+    let row = rows.get(key);
+    if (!row) { row = make(item); rows.set(key, row); }
+    fill(row, item);
+    const wanted = previous ? previous.nextSibling : ul.firstChild;
+    if (row.li !== wanted) ul.insertBefore(row.li, wanted);
+    previous = row.li;
+  }
+  for (const [key, row] of rows) {
+    if (!seen.has(key)) { row.li.remove(); rows.delete(key); }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Trackers                                                            *
+ * ------------------------------------------------------------------ */
+const ORDER = { lost: 0, wait: 1, none: 2, on: 3 };
+const byUrgency = (a, b) =>
+  ORDER[kindOf(a)] - ORDER[kindOf(b)] ||
+  Number(needsPerson(b)) - Number(needsPerson(a)) ||
+  a.deviceId.localeCompare(b.deviceId, undefined, { numeric: true });
+
+function footOf(d) {
+  const kind = kindOf(d);
+  if (kind === "none") return [L.never, "", false];
+  const age = now() - d.lastSeen;
+  if (kind === "on") return [age < 5000 ? L.justNow : L.signalAgo(dur(age)), L.uptime(pct(d.uptimePercent)), false];
+  if (kind === "wait") return [L.silent(dur(age)), L.uptime(pct(d.uptimePercent)), false];
+  const inc = openIncident(d);
+  const doing = inc && inc.escalated ? L.handed : inc && inc.attempts.length ? L.attempt(inc.attempts.length, state.data.thresholds.maxAttempts) : L.starting;
+  return [L.silent(dur(age)), doing, true];
+}
+
+const trackerRows = new Map();
+function makeTrackerRow(d) {
+  const li = el("li");
+  const button = el("button", "row");
+  button.type = "button";
+  const head = el("span", "row-head");
+  const id = el("span", "row-id");
+  const st = el("span", "state");
+  head.append(id, st);
+  const strip = el("span", "strip");
+  const foot = el("span", "row-foot");
+  const left = el("span");
+  const right = el("span");
+  foot.append(left, right);
+  button.append(head, strip, foot);
+  li.append(button);
+  const deviceId = d.deviceId;
+  button.addEventListener("click", () => openSheet(deviceId));
+  return { li, id, st, strip, left, right };
+}
+function fillTrackerRow(row, d, redrawStrip = true) {
+  const kind = kindOf(d);
+  setText(row.id, d.deviceId);
+  setClass(row.st, "state " + kind);
+  setText(row.st, L.state[kind]);
+  if (redrawStrip) drawStrip(row.strip, d, false);
+  const [left, right, doing] = footOf(d);
+  setText(row.left, left);
+  setText(row.right, right);
+  setClass(row.right, doing ? "doing" : "");
+}
+
+function renderHero() {
+  const hero = $("hero");
+  const d = state.data;
+  let cls = "hero";
+  let title;
+  let names = "";
+  let meta = "";
+
+  const stale = d && state.failing && Date.now() - state.okAt > Math.max(15000, 3 * pollEvery());
+  if (!d) {
+    title = state.authBlocked ? L.auth : L.connecting;
+    if (!state.authBlocked && Date.now() - state.startedAt > 8000) meta = L.waking;
+  } else if (stale) {
+    title = state.authBlocked ? L.auth : L.noServer;
+    meta = L.staleSub(clock(state.okAt + state.offset, true));
+  } else {
+    const all = d.devices;
+    const lost = all.filter((x) => kindOf(x) === "lost");
+    const wait = all.filter((x) => kindOf(x) === "wait");
+    const list = (label, group) => {
+      const shown = group.slice(0, 3).map((x) => x.deviceId).join(", ");
+      return `${label} ${shown}${group.length > 3 ? ", " + L.more(group.length - 3) : ""}`;
+    };
+    if (!all.length) { title = L.none; meta = L.noneSub; }
+    else if (lost.length) { cls += " is-lost"; title = L.someLost(lost.length, all.length); if (all.length > 1) names = list(L.lostNames, lost); }
+    else if (wait.length) { cls += " is-wait"; title = L.someWait(wait.length, all.length); if (all.length > 1) names = list(L.waitNames, wait); }
+    else title = L.allOn(all.length);
+    if (all.length) meta = L.live(Math.round(pollEvery() / 1000));
+    if (d.demo) meta += " " + L.demo;
+  }
+  setClass(hero, cls);
+  setText($("heroTitle"), title);
+  setText($("heroNames"), names);
+  $("heroNames").hidden = !names;
+  setText($("heroMeta"), meta.trim());
+  $("heroMeta").hidden = !meta.trim();
+  $("view-trackers").classList.toggle("is-stale", !!stale);
+
+  // Badge on the tab when something is offline and another view is open
+  const lostCount = d && !stale ? d.devices.filter((x) => kindOf(x) === "lost").length : 0;
+  const badge = $("badge");
+  badge.hidden = !(lostCount && state.tab !== "trackers");
+  setText(badge, String(lostCount));
+}
+
+function renderTrackers(redrawStrips = true) {
+  renderHero();
+  const devices = state.data ? [...state.data.devices].sort(byUrgency) : [];
+  syncList($("rows"), trackerRows, devices, (d) => d.deviceId, makeTrackerRow, (row, d) => fillTrackerRow(row, d, redrawStrips));
+}
+
+/* ------------------------------------------------------------------ *
+ * Outages                                                             *
+ * ------------------------------------------------------------------ */
+function outcomeOf(inc) {
+  if (inc.end != null) return ["on", L.out.done];
+  return inc.escalated ? ["lost", L.out.need] : ["wait", L.out.open];
+}
+function whenOf(inc) {
+  const start = clock(inc.start, shortWindow());
+  return inc.end != null ? L.at(start, dur(inc.end - inc.start)) : L.since(start, dur(now() - inc.start));
+}
+const newestFirst = (a, b) =>
+  Number(a.inc.end != null) - Number(b.inc.end != null) ||
+  (a.inc.end == null ? Number(b.inc.escalated) - Number(a.inc.escalated) : 0) ||
+  b.inc.start - a.inc.start;
+
+function makeIncidentRow(item, tappable) {
+  const li = el("li");
+  const box = el(tappable ? "button" : "div", "row");
+  if (tappable) {
+    box.type = "button";
+    const deviceId = item.deviceId;
+    box.addEventListener("click", () => openSheet(deviceId));
+  }
+  const head = el("span", "row-head");
+  const id = el("span", "row-id");
+  const st = el("span", "state");
+  head.append(id, st);
+  const foot = el("span", "row-foot");
+  const left = el("span");
+  const right = el("span");
+  foot.append(left, right);
+  box.append(head, foot);
+  li.append(box);
+  return { li, id, st, left, right };
+}
+function fillIncidentRow(row, item, title, when) {
+  const [kind, word] = outcomeOf(item.inc);
+  setText(row.id, title);
+  setClass(row.st, "state " + kind);
+  setText(row.st, word);
+  setText(row.left, when);
+  setText(row.right, item.inc.attempts.length ? L.tries(item.inc.attempts.length) : "");
+}
+
+const incidentRows = new Map();
+function renderIncidents() {
+  const d = state.data;
+  if (!d) { setText($("incTitle"), L.connecting); return; }
+  const items = [];
+  for (const dev of d.devices) for (const inc of dev.incidents) items.push({ deviceId: dev.deviceId, inc });
+  items.sort(newestFirst);
+  setText($("incTitle"), L.incHero(items.length, windowWords(d.windowMs)));
+  syncList($("incRows"), incidentRows, items.slice(0, 80), (it) => it.deviceId + "|" + it.inc.start,
+    (it) => makeIncidentRow(it, true), (row, it) => fillIncidentRow(row, it, it.deviceId, whenOf(it.inc)));
+}
+
+/* ------------------------------------------------------------------ *
+ * One tracker                                                         *
+ * ------------------------------------------------------------------ */
+const sheetRows = new Map();
+function renderSheet() {
+  if (!state.openId || !state.data) return;
+  const d = state.data.devices.find((x) => x.deviceId === state.openId);
+  if (!d) { closeSheet(); return; }
+  const kind = kindOf(d);
+
+  setText($("dTitle"), d.deviceId);
+  setClass($("dState"), "state " + kind);
+  setText($("dState"), L.state[kind]);
+  setText($("dSince"), footOf(d)[0]);
+
+  drawStrip($("dStrip"), d, true);
+  setText($("axisFrom"), L.axisFrom(windowWords(state.data.windowMs)));
+  setText($("axisNow"), L.now);
+
+  const button = $("checkBtn");
+  setText(button, state.busy ? L.checking : kind === "lost" ? L.checkLost : L.check);
+  button.disabled = state.busy;
+  const msg = $("checkMsg");
+  msg.hidden = !state.result;
+  setText(msg, state.result || "");
+
+  setText($("fUptime"), pct(d.uptimePercent));
+  setText($("fScore"), d.reliabilityScore == null ? "—" : L.scoreVal(d.reliabilityScore, L.risk[d.risk] || d.risk || ""));
+  setText($("fTotal"), num(d.incidentCount));
+  setText($("fBeats"), num(d.totalBeats));
+  const loc = d.lastLocation;
+  $("fPosRow").hidden = !loc;
+  if (loc) {
+    setText($("fPos"), `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`);
+    const href = `https://www.google.com/maps/search/?api=1&query=${loc.lat.toFixed(6)},${loc.lng.toFixed(6)}`;
+    if ($("fMap").getAttribute("href") !== href) $("fMap").setAttribute("href", href);
+  }
+
+  const items = d.incidents.map((inc) => ({ deviceId: d.deviceId, inc })).sort(newestFirst).slice(0, 12);
+  // Inside the sheet the start time is the row title, so the second line only needs the duration.
+  syncList($("dInc"), sheetRows, items, (it) => String(it.inc.start), (it) => makeIncidentRow(it, false),
+    (row, it) => fillIncidentRow(row, it, clock(it.inc.start, shortWindow()), dur((it.inc.end ?? now()) - it.inc.start)));
+  $("dNoInc").hidden = items.length > 0;
+}
+
+function openSheet(id) {
+  if (!state.data || !state.data.devices.some((d) => d.deviceId === id)) return;
+  $("toast").hidden = true;
+  const alreadyOpen = !!state.openId;
+  state.openId = id;
+  state.result = null;
+  for (const row of sheetRows.values()) row.li.remove();
+  sheetRows.clear();
+  renderSheet();
+  $("sheetBody").scrollTop = 0;
+  $("sheet").classList.add("open");
+  for (const part of ["top", "install", "main", "tabs"]) $(part).inert = true;
+  // One history entry per open sheet, so the phone's Back button closes it in one press.
+  if (alreadyOpen) history.replaceState({ sheet: id }, "");
+  else history.pushState({ sheet: id }, "");
+  $("back").focus({ preventScroll: true });
+}
+function closeSheet(fromHistory) {
+  if (!state.openId) return;
+  state.openId = null;
+  $("sheet").classList.remove("open");
+  for (const part of ["top", "install", "main", "tabs"]) $(part).inert = false;
+  if (!fromHistory && history.state && history.state.sheet) history.back();
+}
+
+async function checkNow() {
+  const id = state.openId;
+  if (!id || state.busy) return;
+  state.busy = true;
+  state.result = null;
+  renderSheet();
+  let text;
+  try {
+    const res = await fetch("api/diagnostics/check/" + encodeURIComponent(id), { method: "POST", cache: "no-store" });
+    const answer = await res.json();
+    const R = L.res;
+    if (answer.action === "restart_yuborildi") text = R.restart(answer.attempt) + (state.data && state.data.demo ? " " + R.demo : "");
+    else if (answer.action === "kerak_emas") text = R.fine;
+    else if (answer.action === "kutish_rejimi") text = R.wait(dur(answer.nextAttemptInMs));
+    else if (answer.action === "eskalatsiya" || answer.action === "eskalatsiya_qilingan") text = R.need;
+    else text = R.missing;
+  } catch {
+    text = L.res.fail;
+  }
+  state.busy = false;
+  if (state.openId === id) state.result = text;
+  renderSheet();
+  poll();
+}
+
+/* ------------------------------------------------------------------ *
+ * Copilot                                                             *
+ * ------------------------------------------------------------------ */
+function renderChatNote() {
+  const text = state.legacy ? L.chat.legacyNote : "";
+  $("chatNote").hidden = !text;
+  setText($("chatNote"), text);
+}
+
+function renderChat() {
+  const log = $("chatLog");
+  const nodes = [el("div", "msg bot", L.chat.hello)];
+  for (const m of state.chat) nodes.push(el("div", "msg " + m.who, m.text));
+  log.replaceChildren(...nodes);
+  log.scrollTop = log.scrollHeight;
+  $("chatSend").disabled = state.asking;
+}
+
+async function ask(text) {
+  const query = String(text || "").trim();
+  if (!query || state.asking) return;
+  state.chat.push({ who: "me", text: query });
+  state.asking = true;
+  renderChat();
+  let reply;
+  try {
+    const res = await fetch("api/copilot", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, lang: state.lang }),
+    });
+    const answer = await res.json();
+    reply = answer.answer || answer.error || L.chat.fail;
+  } catch {
+    reply = L.chat.fail;
+  }
+  state.chat.push({ who: "bot", text: String(reply) });
+  state.asking = false;
+  renderChat();
+  poll(); // a restart command changes what the other views show
+}
+
+/* ------------------------------------------------------------------ *
+ * Install hint                                                        *
+ * ------------------------------------------------------------------ */
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+function renderInstall() {
+  const dismissed = store.get("aipilot.install.dismissed") === "1";
+  const canPrompt = !!state.installEvent;
+  const show = !standalone && !dismissed && (canPrompt || isIOS);
+  $("install").hidden = !show;
+  if (!show) return;
+  setText($("installText"), canPrompt ? L.install.text : L.install.ios);
+  $("installGo").hidden = !canPrompt;
+  setText($("installGo"), L.install.go);
+  $("installNo").setAttribute("aria-label", L.install.close);
+}
+
+/* ------------------------------------------------------------------ *
+ * Language, tabs, wiring                                              *
+ * ------------------------------------------------------------------ */
+function applyLanguage() {
+  L = STR[state.lang];
+  document.documentElement.lang = state.lang;
+  $("langs").setAttribute("aria-label", L.langGroup);
+  for (const b of $("langs").children) b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang));
+  for (const b of $("tabs").children) setText(b.querySelector("span"), L.tabs[b.dataset.tab]);
+
+  setText($("backText"), L.back);
+  setText($("fUptimeK"), L.facts.uptime);
+  setText($("fScoreK"), L.facts.score);
+  setText($("fTotalK"), L.facts.total);
+  setText($("fBeatsK"), L.facts.beats);
+  setText($("fPosK"), L.facts.pos);
+  setText($("fMap"), L.facts.map);
+  setText($("recentTitle"), L.recent);
+  setText($("dNoInc"), L.noInc);
+  const legend = $("legend");
+  legend.replaceChildren(...["heard", "quiet", "lost", "tick"].map((key) => {
+    const li = el("li");
+    li.append(el("i", "k-" + key), el("span", "", L.legend[key]));
+    return li;
+  }));
+
+  renderChatNote();
+  $("chatInput").placeholder = L.chat.placeholder;
+  $("chatInput").setAttribute("aria-label", L.chat.placeholder);
+  $("chatSend").setAttribute("aria-label", L.chat.send);
+  $("asks").replaceChildren(...L.chat.asks.map((label, i) => {
+    const b = el("button", "", label);
+    b.type = "button";
+    b.addEventListener("click", () => ask(state.legacy ? ASK_QUERIES[i] : label));
+    return b;
+  }));
+  renderInstall();
+  render();
+  renderChat();
+}
+
+function showTab(tab) {
+  state.tab = tab;
+  for (const b of $("tabs").children) {
+    if (b.dataset.tab === tab) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
+  }
+  for (const name of ["trackers", "incidents", "copilot"]) $("view-" + name).hidden = name !== tab;
+  render();
+  if (tab === "copilot") { const log = $("chatLog"); log.scrollTop = log.scrollHeight; }
+}
+
+function render() {
+  renderChatNote();
+  renderTrackers(true);
+  if (state.tab === "incidents") renderIncidents();
+  renderSheet();
+}
+
+// Once a second: only the running counters ("silent for 42 s"), not the whole screen.
+function tick() {
+  if (document.hidden) return;
+  renderTrackers(false);
+  if (state.tab === "incidents") renderIncidents();
+  renderSheet();
+}
+
+$("langs").addEventListener("click", (event) => {
+  const b = event.target.closest("button[data-lang]");
+  if (!b || b.dataset.lang === state.lang) return;
+  state.lang = b.dataset.lang;
+  store.set("aipilot.lang", state.lang);
+  applyLanguage();
+});
+$("tabs").addEventListener("click", (event) => {
+  const b = event.target.closest("button[data-tab]");
+  if (b) showTab(b.dataset.tab);
+});
+$("back").addEventListener("click", () => closeSheet(false));
+$("checkBtn").addEventListener("click", checkNow);
+$("toast").addEventListener("click", () => { const id = $("toast").dataset.id; $("toast").hidden = true; showTab("trackers"); openSheet(id); });
+$("composer").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const input = $("chatInput");
+  const text = input.value;
+  input.value = "";
+  ask(text);
+});
+$("installGo").addEventListener("click", async () => {
+  const prompt = state.installEvent;
+  if (!prompt) return;
+  state.installEvent = null;
+  try { prompt.prompt(); await prompt.userChoice; } catch { /* closed: fine */ }
+  renderInstall();
+});
+$("installNo").addEventListener("click", () => { store.set("aipilot.install.dismissed", "1"); renderInstall(); });
+
+window.addEventListener("popstate", () => closeSheet(true));
+window.addEventListener("beforeinstallprompt", (event) => { event.preventDefault(); state.installEvent = event; renderInstall(); });
+window.addEventListener("appinstalled", () => { state.installEvent = null; store.set("aipilot.install.dismissed", "1"); renderInstall(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) clearTimeout(pollTimer); else cycle(); });
+
+// Older browsers without "overflow: clip": never let the app frame itself scroll.
+$("app").addEventListener("scroll", () => { $("app").scrollTop = 0; $("app").scrollLeft = 0; });
+
+applyLanguage();
+cycle();
+setInterval(tick, 1000);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { scope: "app" }).catch(() => { /* the app works without it */ }); });
+}
+})();
+</script>
+</body>
+</html>
