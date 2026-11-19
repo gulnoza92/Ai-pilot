@@ -5,7 +5,8 @@ const PORT = process.env.PORT || 3000;
 const server = spawn(process.execPath, ["server.js"], {
   cwd: __dirname,
   stdio: "inherit",
-  env: { ...process.env, PORT },
+  // AIPILOT_DEMO=1: this launcher also starts the simulator below, so the trackers are not real.
+  env: { ...process.env, PORT, AIPILOT_DEMO: "1" },
 });
 
 let sim = null;
