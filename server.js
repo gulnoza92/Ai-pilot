@@ -21,11 +21,18 @@ const { createTracker } = require("./lib");
 const { createDiagnostics } = require("./diagnostics");
 const { createSqliteStore } = require("./store");
 const { createCopilot } = require("./copilot");
+const { resolvePublicFile } = require("./static");
+const { buildOverview } = require("./mobile");
 
 // ---- Sozlamalar (demo uchun soniyalarda; production'da daqiqalarga o'zgartiriladi) ----
+// One place for the thresholds: the monitoring loop and the mobile app read the same values.
+const THRESHOLDS = { delayMs: 5 * 1000, offlineMs: 15 * 1000, retryIntervalMs: 20 * 1000, maxAttempts: 3 };
+// start.js sets AIPILOT_DEMO=1 when it launches the simulator; the mobile app then shows a "demo" note.
+const DEMO = process.env.AIPILOT_DEMO === "1";
+
 const store = createSqliteStore(path.join(__dirname, "aipilot.db"));
-const tracker = createTracker({ delayMs: 5 * 1000, offlineMs: 15 * 1000, store });
-const diagnostics = createDiagnostics(tracker, { retryIntervalMs: 20 * 1000, maxAttempts: 3 });
+const tracker = createTracker({ delayMs: THRESHOLDS.delayMs, offlineMs: THRESHOLDS.offlineMs, store });
+const diagnostics = createDiagnostics(tracker, { retryIntervalMs: THRESHOLDS.retryIntervalMs, maxAttempts: THRESHOLDS.maxAttempts });
 const copilot = createCopilot(tracker, diagnostics);
 
 const startedWith = tracker.all().length;
@@ -51,23 +58,34 @@ function sendJson(res, statusCode, obj) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "no-store",
   });
   res.end(body);
 }
 
+// Only the files listed in static.js are served (web monitor + mobile app).
+// The database, the source code and paths with "../" get a 404.
 function serveStatic(req, res) {
-  let filePath = req.url === "/" ? "/index.html" : req.url;
-  filePath = path.join(__dirname, filePath);
-  fs.readFile(filePath, (err, data) => {
+  const file = req.method === "GET" || req.method === "HEAD" ? resolvePublicFile(req.url, __dirname) : null;
+  if (!file) {
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Not found");
+    return;
+  }
+  fs.readFile(file.filePath, (err, data) => {
     if (err) {
-      res.writeHead(404);
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
       res.end("Not found");
       return;
     }
-    const ext = path.extname(filePath);
-    const contentType = ext === ".html" ? "text/html; charset=utf-8" : "application/octet-stream";
-    res.writeHead(200, { "Content-Type": contentType });
-    res.end(data);
+    res.writeHead(200, {
+      "Content-Type": file.contentType,
+      "Content-Length": data.length,
+      "Cache-Control": file.cacheControl,
+      "X-Content-Type-Options": "nosniff",
+      "X-AI-Pilot": "1", // lets the app's service worker tell our pages from a hosting "waking up" page
+    });
+    res.end(req.method === "HEAD" ? undefined : data);
   });
 }
 
@@ -135,22 +153,29 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && req.url === "/api/copilot") {
     try {
       const raw = await readBody(req);
-      const { query } = JSON.parse(raw || "{}");
+      // lang ("uz" | "ru" | "en") is optional: the mobile app sends its interface language.
+      const { query, lang } = JSON.parse(raw || "{}");
       if (!query) return sendJson(res, 400, { error: "query majburiy" });
-      const answer = copilot.answer(query);
+      const answer = copilot.answer(String(query), lang);
       return sendJson(res, 200, { query, answer });
     } catch (e) {
       return sendJson(res, 400, { error: "noto'g'ri so'rov: " + e.message });
     }
   }
 
-  // 8) Statik fayllar (dashboard)
+  // 8) Mobil ilova uchun bitta ixcham javob (mobile.js)
+  if (req.method === "GET" && req.url.split("?")[0] === "/api/app/overview") {
+    return sendJson(res, 200, buildOverview(tracker, diagnostics, { thresholds: THRESHOLDS, demo: DEMO }));
+  }
+
+  // 9) Statik fayllar (dashboard + mobil ilova)
   return serveStatic(req, res);
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`AI Pilot backend http://localhost:${PORT} portida ishga tushdi`);
+  console.log(`Mobil ilova (telefon uchun): http://localhost:${PORT}/app`);
   console.log(`Signal Monitoring: /api/heartbeat, /api/devices`);
   console.log(`Bashoratli diagnostika: /api/diagnostics/risk, /api/diagnostics/log`);
   console.log(`AI Copilot: POST /api/copilot { "query": "..." }`);
