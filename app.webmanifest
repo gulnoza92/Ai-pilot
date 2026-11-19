@@ -1,0 +1,19 @@
+{
+  "name": "AI Pilot",
+  "short_name": "AI Pilot",
+  "description": "Signal monitoring for GPS trackers: which trackers are silent, since when, and what is being done about it.",
+  "id": "app",
+  "start_url": "app",
+  "scope": "app",
+  "display": "standalone",
+  "background_color": "#0B1A2A",
+  "theme_color": "#0B1A2A",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
