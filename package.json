@@ -2,11 +2,11 @@
   "name": "ai-pilot",
   "version": "1.0.0",
   "description": "AI Pilot — GPS-treker telematikasi: signal monitoring, bashoratli diagnostika, AI Copilot",
-  "main": "kod/server.js",
+  "main": "server.js",
   "scripts": {
     "start": "node start.js",
-    "server": "node kod/server.js",
-    "test": "node kod/test.js && node kod/diagnostics.test.js && node kod/persistence.test.js && node kod/copilot.test.js"
+    "server": "node server.js",
+    "test": "node test.js && node diagnostics.test.js && node persistence.test.js && node copilot.test.js && node static.test.js && node mobile.test.js && node copilot.lang.test.js"
   },
   "engines": {
     "node": ">=22.13"
