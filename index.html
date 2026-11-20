@@ -33,6 +33,12 @@
     TREKER-3 signalining uzilishi tizim reaksiyasini namoyish etish uchun ataylab yuzaga keltiriladi.
     Backend, diagnostika va Copilot mantig'i haqiqiy kod bilan ishlaydi.
   </p>
+  <p style="font-size:14px;">
+    Telefon uchun mobil ilova:
+    <a href="/app?lang=uz" lang="uz">O'zbekcha</a> ·
+    <a href="/app?lang=ru" lang="ru">Русский</a> ·
+    <a href="/app?lang=en" lang="en">English</a>
+  </p>
   <p>Real-vaqtli qurilma holati (2 soniyada bir yangilanadi)</p>
   <table>
     <thead>
@@ -51,6 +57,17 @@
   </div>
 
 <script>
+// Serverdan kelgan qiymatlar sahifaga faqat matn sifatida qo'yiladi (textContent).
+// Qurilma nomini istalgan kishi /api/heartbeat orqali yubora oladi, shuning uchun
+// uni HTML sifatida qo'yib bo'lmaydi: nom ichidagi teg yoki skript bajarilib ketadi.
+function cell(text) {
+  const td = document.createElement("td");
+  td.textContent = text;
+  return td;
+}
+
+const KNOWN_STATUSES = ["ONLAYN", "KECHIKISH", "OFFLAYN"];
+
 async function refresh() {
   const res = await fetch("/api/devices");
   const data = await res.json();
@@ -58,13 +75,21 @@ async function refresh() {
   rows.innerHTML = "";
   data.devices.forEach(d => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${d.deviceId}</td>
-      <td><span class="status-cell"><span class="dot ${d.status}"></span>${d.status}</span></td>
-      <td>${d.secondsSinceLastSeen != null ? d.secondsSinceLastSeen + " soniya oldin" : "—"}</td>
-      <td>${d.uptimePercent}%</td>
-      <td>${d.totalBeats}</td>
-    `;
+    tr.appendChild(cell(d.deviceId));
+
+    const statusCell = document.createElement("td");
+    const wrap = document.createElement("span");
+    wrap.className = "status-cell";
+    const dot = document.createElement("span");
+    dot.className = KNOWN_STATUSES.includes(d.status) ? "dot " + d.status : "dot";
+    wrap.appendChild(dot);
+    wrap.appendChild(document.createTextNode(d.status));
+    statusCell.appendChild(wrap);
+    tr.appendChild(statusCell);
+
+    tr.appendChild(cell(d.secondsSinceLastSeen != null ? d.secondsSinceLastSeen + " soniya oldin" : "—"));
+    tr.appendChild(cell(d.uptimePercent + "%"));
+    tr.appendChild(cell(d.totalBeats));
     rows.appendChild(tr);
   });
 }
